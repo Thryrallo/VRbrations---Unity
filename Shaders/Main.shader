@@ -23,7 +23,9 @@ Shader "VRBrations/Main" {
 
 				#include "UnityCG.cginc"
 
-				#define SCALE 0.02
+				#define SENSOR_WIDTH 40
+				#define SENSOR_HEIGHT 4
+				#define PADDING 0
 
 				#define X_COUNT 10
 
@@ -52,7 +54,9 @@ Shader "VRBrations/Main" {
 				return float4(0, 0, 0, 0);
 #else
 				float fovFits = abs(GetActiveCameraFOV() - _CameraFOV) < 0.0015;
-				float4 pos = fovFits * float4(1 - (uv.x * SCALE * X_COUNT * 2), -1 + (uv.y * SCALE * 2), 0, 1);
+				float2 sensorSize = 2 * (float2(SENSOR_WIDTH, SENSOR_HEIGHT) + PADDING * 2) * float2(_ScreenParams.z - 1, _ScreenParams.w - 1);
+				float2  p = uv * sensorSize - 1.0; //Scaling sensor
+				float4 pos = fovFits * float4( -p.x , p.y, 0, 1); //moving to pixel position
 				pos.y = (_ProjectionParams.x < 0) * pos.y; //flip y if projection is flipped
 				return pos;
 #endif
@@ -71,7 +75,7 @@ Shader "VRBrations/Main" {
 
 			float4 frag(VertexOutput i, float facing : VFACE) : COLOR {
 				float3 data = (float3)0;
-				int index = (int)(i.uv0.x * X_COUNT);
+				int2 pixel = int2(floor(i.uv0.x * (SENSOR_WIDTH + PADDING * 2) - PADDING), floor(i.uv0.y * (SENSOR_HEIGHT + PADDING * 2) - PADDING));
 
 				half testh;
 				half testw = testh = 0.;
@@ -88,9 +92,9 @@ Shader "VRBrations/Main" {
 				audioLink.z = audioLinkPresent * UNITY_SAMPLE_TEX2D(_AudioTexture, float2(uvScaleX, uvScaleY * 5)) * _InShaderAudioLinkMultiplier;
 				audioLink.w = audioLinkPresent * UNITY_SAMPLE_TEX2D(_AudioTexture, float2(uvScaleX, uvScaleY * 7)) * _InShaderAudioLinkMultiplier;
 
-				data += (index == 0) * float3(0.69, 0.01, 0.69);
-				data.xyz += (index == 1) * float3(audioLink.x, audioLink.y, audioLinkPresent);
-				data.xy += (index == 2) * audioLink.zw;
+				data += (pixel.x == 0) * (pixel.y == 0) * float3(0.69, 0.01, 0.69);
+				data.xyz += (pixel.x == 1) * (pixel.y == 0) * float3(audioLink.x, audioLink.y, audioLinkPresent);
+				data.xy += (pixel.x == 1) * (pixel.y == 1) * audioLink.zw;
 
 				return float4(data,1);
 			}

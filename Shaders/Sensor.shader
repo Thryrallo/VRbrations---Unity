@@ -27,10 +27,13 @@ Shader "VRBrations/Sensor" {
 			#pragma target 3.0
 
 			#pragma shader_feature GEOM_TYPE_BRANCH
+			#define TEST_PIXELS 0 //Testing pixels by witing red and green channels to x and y
 
 			#include "UnityCG.cginc"
 
-			#define SCALE 0.02
+			#define SENSOR_WIDTH 4
+			#define SENSOR_HEIGHT 4
+			#define PADDING 0
 
             uniform sampler2D _depthcam; uniform float4 _depthcam_ST; uniform float4 _depthcam_TexelSize;
             uniform float4 _pixelPosition;
@@ -139,8 +142,9 @@ Shader "VRBrations/Sensor" {
 				return float4(0, 0, 0, 0);
 #else
 				float fovFits = abs(GetActiveCameraFOV() - _CameraFOV) < 0.0015;
-				float2  p = uv * 2 * SCALE - 1.0;
-				float4 pos = fovFits * float4(p.x + 2 * SCALE * _pixelPosition.x, p.y + 2 * SCALE * _pixelPosition.y, 0, 1);
+				float2 sensorSize = 2 * (float2(SENSOR_WIDTH, SENSOR_HEIGHT) + PADDING * 2) * float2(_ScreenParams.z - 1, _ScreenParams.w - 1);
+				float2  p = uv * sensorSize - 1.0; //Scaling sensor
+				float4 pos = fovFits * float4(p.x + sensorSize.x * _pixelPosition.x, p.y + sensorSize.y * _pixelPosition.y, 0, 1); //moving to pixel position
 				pos.y = (_ProjectionParams.x < 0) * pos.y; //flip y if projection is flipped
 				return pos;
 #endif
@@ -164,21 +168,22 @@ Shader "VRBrations/Sensor" {
 
                 return o;
             }
+			
             float4 frag(VertexOutput i, float facing : VFACE) : COLOR {
 				float3 data = (float3)0;
-				int isFirstHalf = i.uv0.x < 0.5;
-				int isSecondHalf = isFirstHalf ^ 1;
 
-				int isTop = i.uv0.y < 0.5;
-				int isBottom = isTop ^ 1;
+				int2 pixel = int2(floor(i.uv0.x * (SENSOR_WIDTH + PADDING * 2) - PADDING), floor(i.uv0.y * (SENSOR_HEIGHT + PADDING * 2) - PADDING));
 
 				//Add data
-				data += isTop * isFirstHalf * float3(i.data.x, 0, 0);
-				data += isTop * isFirstHalf * float3(0, i.data.y, 0);
+				data += (pixel.x == 0) * (pixel.y == 0) * float3(0.69, 0.01, 0.69);
+				data += (pixel.x == 1) * (pixel.y == 0) * float3(i.data.x, i.data.y, 0);
+				data += (pixel.x == 2) * (pixel.y == 0) * float3(i.data.z, i.data.w, 0);
 
-				data += isTop * isSecondHalf * float3(0, i.data.z, 0);
-				data += isTop * isSecondHalf * float3(0, 0, i.data.w);
-
+#if TEST_PIXELS
+				data = float3(float(pixel.x) / SENSOR_WIDTH, float(pixel.y) / SENSOR_HEIGHT, 0);
+#endif
+				//Make padded areas black
+				data = data * ((pixel.x < SENSOR_WIDTH) & (pixel.y < SENSOR_HEIGHT) & (pixel.x >= 0) & (pixel.y >= 0));
 				return float4(data,1);
             }
             ENDCG
