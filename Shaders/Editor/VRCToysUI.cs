@@ -1,6 +1,8 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 
@@ -27,6 +29,11 @@ namespace Thry.VRBrations
 
             AssignVarialbles(properties);
 
+            if ((materialEditor.target as Material).HasProperty("_Text0"))
+            {
+                GUILayout.Label("Name", EditorStyles.boldLabel);
+                TextGUI("_Text", materialEditor.target as Material, "Encoded Name: ");
+            }
             if (_pixelPosition != null && _depthcam != null)
             {
                 GUILayout.Label("General", EditorStyles.boldLabel);
@@ -81,6 +88,76 @@ namespace Thry.VRBrations
                     fieldInfo.SetValue(this, p);
                 }
             }
+        }
+
+        public static void TextGUI(string propertyNames, Material m, string label)
+        {
+            int i = 0;
+            List<Color> colorsList = new List<Color>();
+            while (m.HasProperty(propertyNames + i))
+            {
+                colorsList.Add(m.GetColor(propertyNames + i));
+                i++;
+            }
+            Color[] colors = colorsList.ToArray();
+            EditorGUI.BeginChangeCheck();
+            string text = EditorGUILayout.TextField(label, ColorsToText(colors));
+            if (EditorGUI.EndChangeCheck())
+            {
+                colors = TextToColors(text, colors.Length);
+                for (int j = 0; j < colors.Length; j++) m.SetColor(propertyNames + j, colors[j]);
+            }
+        }
+
+        public static string ColorsToText(Color[] colors)
+        {
+            StringBuilder sb = new StringBuilder();
+            for(int i = 0; i < colors.Length / 2; i++)
+            {
+                string binaryString = "" + ((colors[i * 2].r == 1)? "1":"0") + ((colors[i * 2].g == 1) ? "1" : "0") + ((colors[i * 2].b == 1) ? "1" : "0") +
+                    ((colors[i*2 + 1].r == 1) ? "1" : "0") +((colors[i * 2 + 1].g == 1) ? "1" : "0") +((colors[i * 2 + 1].b == 1) ? "1" : "0");
+                int asInt = Convert.ToInt32(binaryString, 2);
+                sb.Append(CompressedIntToChar(asInt));
+            }
+            return sb.ToString();
+        }
+
+        public static Color[] TextToColors(string text, int length)
+        {
+            Color[] colors = new Color[length];
+            for(int i = 0; i < text.Length && i < length / 2; i++)
+            {
+                string binaryString = System.Convert.ToString(CharToCompressedInt(text[i]), 2).PadLeft(6, '0');
+                int[] binary = new int[6];
+                for(int j = 0; j < binary.Length; j++)
+                {
+                    binary[j] = (binaryString[j] == '1') ? 1 : 0;
+                }
+                colors[i * 2 + 0] = new Color(binary[0], binary[1], binary[2]);
+                colors[i * 2 + 1] = new Color(binary[3], binary[4], binary[5]);
+            }
+            return colors;
+        }
+
+        public static int CharToCompressedInt(char c)
+        {
+            int i = (int)c;
+            if (i == 0) return 0; // NULL 0
+            if (i == 32) return 1; // Space 1
+            if (i >= 48 && i <= 57) return i - 48 + 2; // numbers 2 - 11
+            if (i >= 65 && i <= 90) return i - 65 + 12; // A-Z 12 - 37
+            if (i >= 97 && i <= 122) return i - 97 + 38; // a-z 38 - 63
+            return 0;
+        }
+
+        public static char CompressedIntToChar(int i)
+        {
+            if (i == 0) return (char)0;
+            if (i == 1) return (char)32;
+            if (i >= 2 && i <= 11) return (char)(i + 48 - 2);
+            if (i >= 12 && i <= 37) return (char)(i + 65 - 12);
+            if (i >= 38 && i <= 63) return (char)(i + 97 - 38);
+            return (char)0;
         }
     }
 

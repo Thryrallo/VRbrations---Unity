@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Thry.VRBrations
 {
-    public enum Sensor_Position { Crotch, Butt, Chest, Head }
+    public enum Sensor_Position { Crotch, Butt, Chest, Neck }
     public enum Penetrator_Options { None, SupportPenetrator, SupportOriface, PlaceOriface }
 
     public class SensorOptions
@@ -171,6 +171,8 @@ namespace Thry.VRBrations
             foreach (PlacedSensor sensor in placedSensors)
             {
                 EditorGUILayout.LabelField("<b><size=12>" + sensor.gameObject.name + "</size></b>", Styles.RichText);
+
+                VRCToysUI.TextGUI("_Text", sensor.material, "Encoded Name");
 
                 //Pixel Position
                 Vector4 _pixelPosition = sensor.material.GetVector("_pixelPosition");
@@ -414,16 +416,10 @@ namespace Thry.VRBrations
 
             RenderTexture[] textures = CreateRenderTextures("sensor_" + setupData.avatarObject.name, directory, setupData);
 
-            Transform constraintHead;
-            Transform cameraT = CreateHeadObjectWithConstaint(bones, fov, out constraintHead, setupData);
-
-            CreateSensorCameras(textures, bones, directory, fov, constraintHead, setupData, placedSensors);
+            CreateSensorCameras(textures, bones, directory, fov, setupData, placedSensors);
 
             AddDepthGet(setupData.avatarObject);
-            if (cameraT != null)
-            {
-                CreateOverrideCameraPixelWriter(cameraT, setupData, directory, fov);
-            }
+            CreateMainWriter(setupData, directory, fov);
 
             RestoreSavedSetup(placedSensors, setupData.avatarObject.transform);
         }
@@ -509,112 +505,26 @@ namespace Thry.VRBrations
             return renderTextures.ToArray();
         }
 
-        private static Transform CreateHeadObjectWithConstaint(HumanBone[] bones, float cameraFovId, out Transform constraintHead, SetupData setupData)
-        {
-            GameObject cameraObj;
-            Camera c;
-            constraintHead = null;
-
-            Transform head = null;
-            bool addConstraintHead = setupData.addDesktopUseability || setupData.sensor_Positions.Any(s => s.position == Sensor_Position.Head);
-            if (addConstraintHead)
-            {
-                head = FindBoneTransform(bones, "Head", setupData.avatarObject);
-                Transform neck = FindBoneTransform(bones, "Neck", setupData.avatarObject);
-                if (head == null || neck == null)
-                {
-                    Debug.LogError("[Thry][ToyController] Could not find head or neck bone.");
-                    return null;
-                }
-
-                GameObject fakeHead = new GameObject(HEAD_OBJ_NAME);
-                fakeHead.transform.parent = neck;
-                fakeHead.transform.position = head.position;
-                fakeHead.transform.rotation = head.rotation;
-                UnityEngine.Animations.RotationConstraint constraint = fakeHead.AddComponent<UnityEngine.Animations.RotationConstraint>();
-                constraint.enabled = true;
-                constraint.constraintActive = true;
-                UnityEngine.Animations.ConstraintSource source = new UnityEngine.Animations.ConstraintSource();
-                source.sourceTransform = head;
-                source.weight = 1;
-                constraint.AddSource(source);
-                constraintHead = fakeHead.transform;
-            }
-
-            if (setupData.addDesktopUseability)
-            {
-                cameraObj = new GameObject(CAMERA_OVERRENDERER_NAME);
-                cameraObj.transform.parent = constraintHead;
-                c = cameraObj.AddComponent<Camera>();
-
-                //camera position and rotation
-                int eyeTransforms = 0;
-                Vector3 eyes = Vector3.zero;
-                for (int i = 0; i < head.childCount; i++)
-                {
-                    if (head.GetChild(i).name.ToLower().Contains("eye"))
-                    {
-                        eyes = eyes + head.GetChild(i).localPosition;
-                        eyeTransforms++;
-                    }
-                }
-                if (eyeTransforms > 0) eyes = new Vector3(eyes.x / eyeTransforms, eyes.y / eyeTransforms, eyes.z / eyeTransforms);
-                cameraObj.transform.localPosition = eyes;
-                cameraObj.transform.localRotation = Quaternion.identity;
-                
-                c.cullingMask = ~(LayerMask.GetMask("MirrorReflection"));
-            }
-            else
-            {
-                cameraObj = new GameObject("[Toys] Camera Overrender");
-                cameraObj.transform.parent = setupData.avatarObject.transform;
-                cameraObj.transform.localPosition = new Vector3(0, 0, 0);
-                cameraObj.transform.position = cameraObj.transform.position + new Vector3(0, -0.5f, 0);
-                cameraObj.transform.rotation = Quaternion.identity;
-                c = cameraObj.AddComponent<Camera>();
-
-                c.cullingMask = LayerMask.GetMask("PlayerLocal");
-
-                c.clearFlags = CameraClearFlags.SolidColor;
-                c.backgroundColor = Color.gray;
-
-                c.farClipPlane = 0.25f;
-                
-                c.useOcclusionCulling = false;
-            }
-            c.allowHDR = false;
-            c.allowMSAA = true;
-            c.nearClipPlane = 0.01f;
-            c.fieldOfView = cameraFovId;
-
-            c.stereoTargetEye = StereoTargetEyeMask.None;
-
-            return cameraObj.transform;
-        }
-
-        private static void CreateOverrideCameraPixelWriter(Transform cameraTransform, SetupData setupData, string folderpath, float _CameraFOV)
+        private static void CreateMainWriter(SetupData setupData, string folderpath, float _CameraFOV)
         {
             Mesh quad = AssetDatabase.LoadAssetAtPath<Mesh>(AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("t:mesh VRCToysQuad")[0]));
             Shader shader = Shader.Find(SHADER_NAME_MAIN);
 
-            /*GameObject o = new GameObject("[Toys] Main Writer");
-            o.transform.parent = cameraTransform;
+            GameObject o = new GameObject("[Toys] Main Writer");
+            o.transform.parent = setupData.avatarObject.transform;
             o.transform.localPosition = Vector3.zero;
             o.transform.rotation = Quaternion.identity;
             o.transform.localScale = Vector3.one * 0.000001f;
-            o.layer = LayerMask.NameToLayer("PlayerLocal");*/
+            o.layer = LayerMask.NameToLayer("PlayerLocal");
 
-            cameraTransform.localScale = Vector3.one * 0.000001f;
-            cameraTransform.gameObject.layer = LayerMask.NameToLayer("PlayerLocal");
-
-            MeshFilter meshFilter = cameraTransform.gameObject.AddComponent<MeshFilter>();
+            MeshFilter meshFilter = o.AddComponent<MeshFilter>();
             meshFilter.sharedMesh = quad;
 
             Material m = new Material(shader);
             m.SetFloat("_CameraFOV", _CameraFOV);
             AssetDatabase.CreateAsset(m, folderpath + "/mainWriter_" + setupData.avatarObject.name + ".mat");
 
-            MeshRenderer r = cameraTransform.gameObject.AddComponent<MeshRenderer>();
+            MeshRenderer r = o.AddComponent<MeshRenderer>();
             r.allowOcclusionWhenDynamic = false;
             r.sharedMaterials = new Material[] { m };
             r.receiveShadows = false;
@@ -643,7 +553,7 @@ namespace Thry.VRBrations
             l.cullingMask = LayerMask.GetMask("Ignore Raycast");
         }
 
-        private static void CreateSensorCameras(RenderTexture[] textures, HumanBone[] bones, string folderpath, float cameraFovId, Transform constrainHead, SetupData setupData, List<PlacedSensor> placedSensors)
+        private static void CreateSensorCameras(RenderTexture[] textures, HumanBone[] bones, string folderpath, float cameraFovId, SetupData setupData, List<PlacedSensor> placedSensors)
         {
             Mesh quad = AssetDatabase.LoadAssetAtPath<Mesh>(AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("t:mesh VRCToysQuad")[0]));
             Shader shader = Shader.Find(SHADER_NAME_SENSOR);
@@ -657,7 +567,7 @@ namespace Thry.VRBrations
             }
             for (int i = 0; i < setupData.sensorCount; i++)
             {
-                GameObject o = GetSensorTransform(i, bones, constrainHead, setupData);
+                GameObject o = GetSensorTransform(i, bones, setupData);
 
                 Sensor_Position position = setupData.sensor_Positions[i].position;
                 o.name = "[Toys] Sensor_" + position + (doSensorPosCount[position] ? "_"+ sensorPosCount[position] : "");
@@ -742,7 +652,7 @@ namespace Thry.VRBrations
             return l;
         }
 
-        private static GameObject GetSensorTransform(int i, HumanBone[] bones, Transform constrainHead, SetupData setupData)
+        private static GameObject GetSensorTransform(int i, HumanBone[] bones, SetupData setupData)
         {
             // 0: v, 1: a, 2: chest, 3: head,
             Quaternion rotation = Quaternion.identity;
@@ -755,9 +665,10 @@ namespace Thry.VRBrations
 
             switch (setupData.sensor_Positions[i].position)
             {
-                case Sensor_Position.Head:
-                    parent = constrainHead;
+                case Sensor_Position.Neck:
+                    parent = FindBoneTransform(bones, "Neck", setupData.avatarObject);
                     rotation = Quaternion.LookRotation(Vector3.forward, Vector3.up);
+                    localPos = Vector3.up * 0.2f;
                     //parent = FindTransfromPath(avatarRoot, "Armature", "Hip", "Spine", "Chest", "Neck", "Head");
                     break;
                 case Sensor_Position.Chest:
