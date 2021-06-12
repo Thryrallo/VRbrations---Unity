@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 6
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: pixelWriter_VRbrations Avi_2
+  m_Shader: {fileID: 4800000, guid: 8238f8c0373b04649a1c98136bb66898, type: 3}
+  m_ShaderKeywords: 
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _depthcam:
+        m_Texture: {fileID: 8400000, guid: 2ff6b77b660b5e7428450b92bf20f134, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Floats:
+    - _CheckPenetratorOrface: 0
+    - _InShaderMultiplier: 1
+    - _StencilRef: 73
+    m_Colors:
+    - _OverideDepth: {r: 0, g: 1, b: 0, a: 0}
+    - _OverideWidth: {r: 0, g: 1, b: 0, a: 0}
+    - _Text0: {r: 0, g: 1, b: 1, a: 1}
+    - _Text1: {r: 0, g: 0, b: 1, a: 1}
+    - _Text10: {r: 0, g: 0, b: 0, a: 1}
+    - _Text11: {r: 0, g: 0, b: 0, a: 1}
+    - _Text12: {r: 0, g: 0, b: 0, a: 1}
+    - _Text13: {r: 0, g: 0, b: 0, a: 1}
+    - _Text14: {r: 0, g: 0, b: 0, a: 1}
+    - _Text15: {r: 0, g: 0, b: 0, a: 1}
+    - _Text16: {r: 0, g: 0, b: 0, a: 1}
+    - _Text17: {r: 0, g: 0, b: 0, a: 1}
+    - _Text18: {r: 0, g: 0, b: 0, a: 1}
+    - _Text19: {r: 0, g: 0, b: 0, a: 1}
+    - _Text2: {r: 1, g: 0, b: 1, a: 1}
+    - _Text20: {r: 0, g: 0, b: 0, a: 1}
+    - _Text21: {r: 0, g: 0, b: 0, a: 1}
+    - _Text22: {r: 0, g: 0, b: 0, a: 1}
+    - _Text23: {r: 0, g: 0, b: 0, a: 1}
+    - _Text3: {r: 0, g: 1, b: 0, a: 1}
+    - _Text4: {r: 1, g: 0, b: 1, a: 1}
+    - _Text5: {r: 0, g: 0, b: 0, a: 1}
+    - _Text6: {r: 1, g: 1, b: 0, a: 1}
+    - _Text7: {r: 0, g: 0, b: 0, a: 1}
+    - _Text8: {r: 0, g: 0, b: 0, a: 1}
+    - _Text9: {r: 0, g: 0, b: 0, a: 1}
+    - _pixelPosition: {r: 2, g: 0, b: 0, a: 0}

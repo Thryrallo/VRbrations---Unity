@@ -1,20 +1,24 @@
-﻿float4 TransformToScreenPixelRight(float2 uv) {
+﻿#define PIXEL_WIDTH 0.5
+#define PIXEL_HEIGHT 0.5
+
+#define SENSOR_WIDTH 12
+#define SENSOR_HEIGHT 7
+
+float4 TransformToScreenMain (float2 uv) {
 #if defined(USING_STEREO_MATRICES)
 	return float4(0, 0, 0, 0);
 #else
-	float2 sensorSize = 2 * float2(SENSOR_WIDTH * 3, SENSOR_HEIGHT) * float2(_ScreenParams.z - 1, _ScreenParams.w - 1);
-	float2  p = uv * sensorSize - 1.0; //Scaling sensor
-	float4 pos = float4(-p.x, p.y, 0, 1); //moving to pixel position
+	float4 pos = float4(uv.xy * float2(-2, 2) + float2(1, -1), 0, 1);; //moving to pixel position
 	pos.y = (_ProjectionParams.x < 0) * pos.y; //flip y if projection is flipped
 	return pos;
 #endif
 }
 
-float4 TransformToScreenPixel(float2 uv) {
+float4 TransformToScreenSensor(float2 uv) {
 #if defined(USING_STEREO_MATRICES)
 	return float4(0, 0, 0, 0);
 #else
-	float2 sensorSize = 2 * float2(SENSOR_WIDTH * 3, SENSOR_HEIGHT) * float2(_ScreenParams.z - 1, _ScreenParams.w - 1);
+	float2 sensorSize = float2(SENSOR_WIDTH, SENSOR_HEIGHT) * float2(PIXEL_WIDTH, PIXEL_HEIGHT) / 50;
 	float2  p = uv * sensorSize - 1.0; //Scaling sensor
 	float4 pos = float4(p.x + sensorSize.x * _pixelPosition.x, p.y + sensorSize.y * _pixelPosition.y, 0, 1); //moving to pixel position
 	pos.y = (_ProjectionParams.x < 0) * pos.y; //flip y if projection is flipped

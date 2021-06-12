@@ -22,6 +22,11 @@ namespace Thry.VRBrations
 
         MaterialProperty _InShaderAudioLinkMultiplier = null;
 
+        MaterialProperty _HeaderTexture = null;
+
+        public const int MAX_X = 5;
+        public const int MAX_Y = 2;
+
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] properties)
         {
             EditorGUILayout.LabelField("<size=16><color=#EF7AFF>❤ VRC Toys ❤</color></size>", Styles.masterLabel);
@@ -29,15 +34,26 @@ namespace Thry.VRBrations
 
             AssignVarialbles(properties);
 
+            if(_HeaderTexture != null)
+            {
+                if( _HeaderTexture.textureValue == null || _HeaderTexture.textureValue.name != "vrbrationsheader"){
+                    string[] guids = AssetDatabase.FindAssets("vrbrationsheader t:texture");
+                    if(guids.Length > 0)
+                    {
+                        _HeaderTexture.textureValue = AssetDatabase.LoadAssetAtPath<Texture>(AssetDatabase.GUIDToAssetPath(guids[0]));
+                    }
+                }
+            }
+
             if ((materialEditor.target as Material).HasProperty("_Text0"))
             {
                 GUILayout.Label("Name", EditorStyles.boldLabel);
-                TextGUI("_Text", materialEditor.target as Material, "Encoded Name: ");
+                TextGUI(materialEditor.target as Material, "Encoded Name: ");
             }
             if (_pixelPosition != null && _depthcam != null)
             {
                 GUILayout.Label("General", EditorStyles.boldLabel);
-                _pixelPosition.vectorValue = (Vector2)EditorGUILayout.Vector2IntField(new GUIContent("Pixel Position", "Set the ouput position."), new Vector2Int((int)Mathf.Clamp(_pixelPosition.vectorValue.x, 0, 10), (int)Mathf.Clamp(_pixelPosition.vectorValue.y, 0, 10)));
+                _pixelPosition.vectorValue = (Vector2)EditorGUILayout.Vector2IntField(new GUIContent("Pixel Position", "Set the ouput position."), new Vector2Int((int)Mathf.Clamp(_pixelPosition.vectorValue.x, 0, MAX_X), (int)Mathf.Clamp(_pixelPosition.vectorValue.y, 0, MAX_Y)));
 
                 materialEditor.TexturePropertySingleLine(new GUIContent(_depthcam.displayName), _depthcam);
             }
@@ -90,42 +106,71 @@ namespace Thry.VRBrations
             }
         }
 
-        public static void TextGUI(string propertyNames, Material m, string label)
+        const string sensorNameColorPropertiesStart = "_Text";
+        public static void TextGUI(Material m, string label)
         {
-            int i = 0;
-            List<Color> colorsList = new List<Color>();
-            while (m.HasProperty(propertyNames + i))
-            {
-                colorsList.Add(m.GetColor(propertyNames + i));
-                i++;
-            }
-            Color[] colors = colorsList.ToArray();
             EditorGUI.BeginChangeCheck();
-            string text = EditorGUILayout.TextField(label, ColorsToText(colors));
+            string text = EditorGUILayout.TextField(label, GetSensorName(m));
             if (EditorGUI.EndChangeCheck())
             {
-                colors = TextToColors(text, colors.Length);
-                for (int j = 0; j < colors.Length; j++) m.SetColor(propertyNames + j, colors[j]);
+                SetSensorName(m, text);
             }
         }
 
-        public static string ColorsToText(Color[] colors)
+        public static void SetSensorName(Material m, string name)
         {
-            StringBuilder sb = new StringBuilder();
-            for(int i = 0; i < colors.Length / 2; i++)
+            Color[] colors = TextToColors(name);
+            int i = 0;
+            while (m.HasProperty(sensorNameColorPropertiesStart + i) && m.HasProperty(sensorNameColorPropertiesStart + (i + 1)))
             {
-                string binaryString = "" + ((colors[i * 2].r == 1)? "1":"0") + ((colors[i * 2].g == 1) ? "1" : "0") + ((colors[i * 2].b == 1) ? "1" : "0") +
-                    ((colors[i*2 + 1].r == 1) ? "1" : "0") +((colors[i * 2 + 1].g == 1) ? "1" : "0") +((colors[i * 2 + 1].b == 1) ? "1" : "0");
-                int asInt = Convert.ToInt32(binaryString, 2);
-                sb.Append(CompressedIntToChar(asInt));
+                if(i + 1 < colors.Length)
+                {
+                    m.SetColor(sensorNameColorPropertiesStart + i, colors[i]);
+                    m.SetColor(sensorNameColorPropertiesStart + (i + 1), colors[i+1]);
+                }
+                else
+                {
+                    m.SetColor(sensorNameColorPropertiesStart + i, Color.black);
+                    m.SetColor(sensorNameColorPropertiesStart + (i + 1), Color.black);
+                }
+                i += 2;
             }
-            return sb.ToString();
         }
 
-        public static Color[] TextToColors(string text, int length)
+        public static string GetSensorName(Material m)
         {
-            Color[] colors = new Color[length];
-            for(int i = 0; i < text.Length && i < length / 2; i++)
+            if (m.HasProperty(sensorNameColorPropertiesStart+ "0"))
+            {
+                int i = 0;
+                StringBuilder sb = new StringBuilder();
+                while (m.HasProperty(sensorNameColorPropertiesStart + i) && m.HasProperty(sensorNameColorPropertiesStart + (i+1)))
+                {
+                    char c = ColorsToChar(m.GetColor(sensorNameColorPropertiesStart + i), m.GetColor(sensorNameColorPropertiesStart + (i + 1)));
+                    if (c != (char)0) sb.Append(c);
+                    i += 2;
+                }
+                return sb.ToString();
+            }
+            return "";
+        }
+
+        public static char ColorsToChar(Color c1, Color c2)
+        {
+            StringBuilder binaryString = new StringBuilder();
+            binaryString.Append((c1.r == 1) ? "1" : "0");
+            binaryString.Append((c1.g == 1) ? "1" : "0");
+            binaryString.Append((c1.b == 1) ? "1" : "0");
+            binaryString.Append((c2.r == 1) ? "1" : "0");
+            binaryString.Append((c2.g == 1) ? "1" : "0");
+            binaryString.Append((c2.b == 1) ? "1" : "0");
+            int asInt = Convert.ToInt32(binaryString.ToString(), 2);
+            return CompressedIntToChar(asInt);
+        }
+
+        public static Color[] TextToColors(string text)
+        {
+            Color[] colors = new Color[text.Length * 2];
+            for(int i = 0; i < text.Length; i++)
             {
                 string binaryString = System.Convert.ToString(CharToCompressedInt(text[i]), 2).PadLeft(6, '0');
                 int[] binary = new int[6];

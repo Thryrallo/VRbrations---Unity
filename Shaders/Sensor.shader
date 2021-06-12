@@ -62,9 +62,6 @@ Shader "VRBrations/Sensor" {
 			#pragma shader_feature GEOM_TYPE_BRANCH
 			#define TEST_PIXELS 0 //Testing pixels by witing red and green channels to x and y
 
-			#define SENSOR_WIDTH 4
-			#define SENSOR_HEIGHT 8
-
 			#include "UnityCG.cginc"
 
             uniform sampler2D _depthcam; uniform float4 _depthcam_ST; uniform float4 _depthcam_TexelSize;
@@ -193,7 +190,7 @@ Shader "VRBrations/Sensor" {
                 VertexOutput o = (VertexOutput)0;
                 o.uv0 = v.texcoord0;
 				o.worldPos = mul(unity_ObjectToWorld, float4(0, 0, 0, 1)).xyz;
-				o.pos = TransformToScreenPixel(o.uv0.xy);
+				o.pos = TransformToScreenSensor(o.uv0.xy);
 
 				o.data = GetCameraData(_depthcam, _depthcam_TexelSize.zw);
 				DoPenetratorStrength(o.data);
@@ -210,20 +207,20 @@ Shader "VRBrations/Sensor" {
 			
             float4 frag(VertexOutput i, float facing : VFACE) : COLOR {
 				float3 data = (float3)0;
-				int2 dataIndex = int2(floor(i.uv0.x * SENSOR_WIDTH), floor(i.uv0.y * SENSOR_HEIGHT));
-				int2 pixel = int2(floor(i.uv0.x * SENSOR_WIDTH * 3), floor(i.uv0.y * SENSOR_HEIGHT));
-				int dataSubIndex = uint(floor(i.uv0.x * SENSOR_WIDTH * 3)) % 3;
+				int2 pixel = int2(floor(i.uv0.x * SENSOR_WIDTH), floor(i.uv0.y * SENSOR_HEIGHT));
+				int2 dataIndex = int2(pixel.x / 3, pixel.y);
+				int dataSubIndex = uint(floor(i.uv0.x * SENSOR_WIDTH)) % 3;
 
 				//Data Color References
-				data += (pixel.x == 0) * (pixel.y == 0) * float3(0, 0, 0);
-				data += (pixel.x == 1) * (pixel.y == 0) * float3(0, 0, 1);
-				data += (pixel.x == 2) * (pixel.y == 0) * float3(0, 1, 0);
-				data += (pixel.x == 3) * (pixel.y == 0) * float3(0, 1, 1);
-				data += (pixel.x == 4) * (pixel.y == 0) * float3(1, 0, 0);
-				data += (pixel.x == 5) * (pixel.y == 0) * float3(1, 0, 1);
-				data += (pixel.x == 6) * (pixel.y == 0) * float3(1, 1, 0);
-				data += (pixel.x == 7) * (pixel.y == 0) * float3(1, 1, 1);
-				data += EncodeShort(3, 0, 175, dataIndex, dataSubIndex);
+				data += (pixel.x == 0) * (pixel.y == 3) * float3(0, 0, 0);
+				data += (pixel.x == 1) * (pixel.y == 3) * float3(0, 0, 1);
+				data += (pixel.x == 2) * (pixel.y == 3) * float3(0, 1, 0);
+				data += (pixel.x == 3) * (pixel.y == 3) * float3(0, 1, 1);
+				data += (pixel.x == 4) * (pixel.y == 3) * float3(1, 0, 0);
+				data += (pixel.x == 5) * (pixel.y == 3) * float3(1, 0, 1);
+				data += (pixel.x == 6) * (pixel.y == 3) * float3(1, 1, 0);
+				data += (pixel.x == 7) * (pixel.y == 3) * float3(1, 1, 1);
+				data += EncodeShort(3, 3, 175, dataIndex, dataSubIndex);
 
 				//Add data
 				data += EncodeFloat(0, 2, i.data.x, dataIndex, dataSubIndex);
@@ -232,35 +229,35 @@ Shader "VRBrations/Sensor" {
 				data += EncodeFloat(3, 2, i.data.w, dataIndex, dataSubIndex);
 
 				//text
-				data += (pixel.y == 6) * (pixel.x == 0) * _Text0;
-				data += (pixel.y == 6) * (pixel.x == 1) * _Text1;
-				data += (pixel.y == 6) * (pixel.x == 2) * _Text2;
-				data += (pixel.y == 6) * (pixel.x == 3) * _Text3;
-				data += (pixel.y == 6) * (pixel.x == 4) * _Text4;
-				data += (pixel.y == 6) * (pixel.x == 5) * _Text5;
-				data += (pixel.y == 6) * (pixel.x == 6) * _Text6;
-				data += (pixel.y == 6) * (pixel.x == 7) * _Text7;
-				data += (pixel.y == 6) * (pixel.x == 8) * _Text8;
-				data += (pixel.y == 6) * (pixel.x == 9) * _Text9;
-				data += (pixel.y == 6) * (pixel.x == 10) * _Text10;
-				data += (pixel.y == 6) * (pixel.x == 11) * _Text11;
-				data += (pixel.y == 7) * (pixel.x == 0) * _Text12;
-				data += (pixel.y == 7) * (pixel.x == 1) * _Text13;
-				data += (pixel.y == 7) * (pixel.x == 2) * _Text14;
-				data += (pixel.y == 7) * (pixel.x == 3) * _Text15;
-				data += (pixel.y == 7) * (pixel.x == 4) * _Text16;
-				data += (pixel.y == 7) * (pixel.x == 5) * _Text17;
-				data += (pixel.y == 7) * (pixel.x == 6) * _Text18;
-				data += (pixel.y == 7) * (pixel.x == 7) * _Text19;
-				data += (pixel.y == 7) * (pixel.x == 8) * _Text20;
-				data += (pixel.y == 7) * (pixel.x == 9) * _Text21;
-				data += (pixel.y == 7) * (pixel.x == 10) * _Text22;
-				data += (pixel.y == 7) * (pixel.x == 11) * _Text23;
+				data += (pixel.y == 5) * (pixel.x == 0) * _Text0;
+				data += (pixel.y == 5) * (pixel.x == 1) * _Text1;
+				data += (pixel.y == 5) * (pixel.x == 2) * _Text2;
+				data += (pixel.y == 5) * (pixel.x == 3) * _Text3;
+				data += (pixel.y == 5) * (pixel.x == 4) * _Text4;
+				data += (pixel.y == 5) * (pixel.x == 5) * _Text5;
+				data += (pixel.y == 5) * (pixel.x == 6) * _Text6;
+				data += (pixel.y == 5) * (pixel.x == 7) * _Text7;
+				data += (pixel.y == 5) * (pixel.x == 8) * _Text8;
+				data += (pixel.y == 5) * (pixel.x == 9) * _Text9;
+				data += (pixel.y == 5) * (pixel.x == 10) * _Text10;
+				data += (pixel.y == 5) * (pixel.x == 11) * _Text11;
+				data += (pixel.y == 6) * (pixel.x == 0) * _Text12;
+				data += (pixel.y == 6) * (pixel.x == 1) * _Text13;
+				data += (pixel.y == 6) * (pixel.x == 2) * _Text14;
+				data += (pixel.y == 6) * (pixel.x == 3) * _Text15;
+				data += (pixel.y == 6) * (pixel.x == 4) * _Text16;
+				data += (pixel.y == 6) * (pixel.x == 5) * _Text17;
+				data += (pixel.y == 6) * (pixel.x == 6) * _Text18;
+				data += (pixel.y == 6) * (pixel.x == 7) * _Text19;
+				data += (pixel.y == 6) * (pixel.x == 8) * _Text20;
+				data += (pixel.y == 6) * (pixel.x == 9) * _Text21;
+				data += (pixel.y == 6) * (pixel.x == 10) * _Text22;
+				data += (pixel.y == 6) * (pixel.x == 11) * _Text23;
 
 #if TEST_PIXELS
 				data = float3(float(floatIndex.x) / SENSOR_WIDTH, float(floatIndex.y) / SENSOR_HEIGHT, 0);
 #endif
-				return float4(data,1);
+				return float4(data * 0.5f,1);
             }
             ENDCG
         }

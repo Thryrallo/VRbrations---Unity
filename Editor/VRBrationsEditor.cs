@@ -4,8 +4,15 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
+
+#if VRC_SDK_VRCSDK3 && !UDON
+using VRC.SDK3.Avatars.Components;
+using static VRC.SDK3.Avatars.Components.VRCAvatarDescriptor;
+#endif
 
 namespace Thry.VRBrations
 {
@@ -38,7 +45,7 @@ namespace Thry.VRBrations
         static vrbrations prevvrb;
         static void SelectionChanged()
         {
-#if VRC_SDK_VRCSDK3
+#if VRC_SDK_VRCSDK3 && !UDON
             if (Selection.activeTransform)
             {
                 if (prevvrb && prevvrb.transform != Selection.activeTransform)
@@ -52,7 +59,8 @@ namespace Thry.VRBrations
                     {
                         //check for existing sensors
                         List<GameObject> foundSensors = new List<GameObject>();
-                        ToyControllerSetup.FindDeepChildren(Selection.activeTransform, "[Toys] Sensor", foundSensors);
+                        VRbrationsSetup.FindDeepChildren(Selection.activeTransform, VRbrationsSetup.VRBRATIONS_PREFIX+" Sensor", foundSensors);
+                        VRbrationsSetup.FindDeepChildren(Selection.activeTransform, "[Toys]"+" Sensor", foundSensors);
                         if (foundSensors.Count > 0)
                         {
                             vrb = Selection.activeTransform.gameObject.AddComponent<vrbrations>();
@@ -68,7 +76,7 @@ namespace Thry.VRBrations
         static bool wasVRCWindow;
         static void FocusChanged()
         {
-#if VRC_SDK_VRCSDK3
+#if VRC_SDK_VRCSDK3 && !UDON
             if (EditorWindow.focusedWindow is VRCSdkControlPanel && prevvrb)
             {
                 prevvrb.Destroy();
@@ -87,34 +95,61 @@ namespace Thry.VRBrations
     {
         int sensorCount = 1;
         List<SensorOptions> sensor_Positions = new List<SensorOptions>() { new SensorOptions() };
-        bool addDesktopUseability;
 
         public List<PlacedSensor> placedSensors = new List<PlacedSensor>();
         public bool load_PlacedSensors = true;
         vrbrations avatarScript;
 
+        bool isInit = false;
+
         #region GUI
         public override void OnInspectorGUI()
         {
-            Styles.Init();
+            if (!isInit)
+            {
+                Styles.Init();
+                Init();
+            }
             avatarScript = target as vrbrations;
 
             if (sensor_Positions.Count == 0) load_PlacedSensors = true;
 
             GUIHeader();
-            if (load_PlacedSensors)
+
+#if VRC_SDK_VRCSDK3
+            if (avatarScript.GetComponent<VRCAvatarDescriptor>() != null)
             {
-                ToyControllerSetup.FindAvatarSensors(placedSensors, new SetupData(avatarScript.gameObject, sensorCount, sensor_Positions, addDesktopUseability), avatarScript.foundSensorsObjects);
-                load_PlacedSensors = false;
+                if (load_PlacedSensors)
+                {
+                    VRbrationsSetup.FindAvatarSensors(placedSensors, new SetupData(avatarScript.gameObject, sensorCount, sensor_Positions), avatarScript.foundSensorsObjects);
+                    load_PlacedSensors = false;
+                }
+
+                EditorGUIUtility.wideMode = true;
+                if (placedSensors.Count > 0)
+                    GUIExistingSetup();
+                else
+                    GUINewSetup();
+
+                EditorGUIUtility.wideMode = false;
             }
-
-            EditorGUIUtility.wideMode = true;
-            if (placedSensors.Count > 0)
-                GUIExistingSetup();
             else
-                GUINewSetup();
+            {
+                EditorGUILayout.LabelField("<size=20>No avatar descriptor found.</size>", Styles.masterLabel, GUILayout.Height(40));
+            }
+#else
+            EditorGUILayout.LabelField("<size=24>VRbrations setup only works with sdk3</size>", Styles.masterLabel, GUILayout.Height(40));
+#endif
+        }
 
-            EditorGUIUtility.wideMode = false;
+        void Init()
+        {
+#if VRC_SDK_VRCSDK3
+            if (!UpdateLayers.AreLayersSetup())
+            {
+                UpdateLayers.SetupEditorLayers();
+            }
+#endif
         }
 
         private void GUIHeader()
@@ -149,10 +184,9 @@ namespace Thry.VRBrations
 
             EditorGUILayout.Space();
 
-            addDesktopUseability = EditorGUILayout.Toggle(new GUIContent("Desktop Useable", "Allows avatar to be used in desktop. comes with slight performance penalty."), addDesktopUseability);
             if (GUILayout.Button("Setup"))
             {
-                ToyControllerSetup.SetupAvatar(placedSensors, new SetupData(avatarScript.gameObject, sensorCount, sensor_Positions, addDesktopUseability));
+                VRbrationsSetup.SetupAvatar(placedSensors, new SetupData(avatarScript.gameObject, sensorCount, sensor_Positions));
                 load_PlacedSensors = true;
             }
         }
@@ -162,6 +196,7 @@ namespace Thry.VRBrations
             GUIExistingSensors();
             GUIUpdateSetup();
             GUIDeleteSetup();
+            ValidateSensorPositions();
         }
         
         private void GUIExistingSensors()
@@ -172,19 +207,19 @@ namespace Thry.VRBrations
             {
                 EditorGUILayout.LabelField("<b><size=12>" + sensor.gameObject.name + "</size></b>", Styles.RichText);
 
-                VRCToysUI.TextGUI("_Text", sensor.material, "Encoded Name");
+                VRCToysUI.TextGUI(sensor.material, "Encoded Name");
 
                 //Pixel Position
-                Vector4 _pixelPosition = sensor.material.GetVector("_pixelPosition");
-                _pixelPosition = (Vector2)EditorGUILayout.Vector2IntField(new GUIContent("Pixel Position", "The x and y position that you also have to enter in the software."), new Vector2Int((int)_pixelPosition.x, (int)_pixelPosition.y));
-                sensor.material.SetVector("_pixelPosition", _pixelPosition);
+                //Vector4 _pixelPosition = sensor.material.GetVector("_pixelPosition");
+                //_pixelPosition = (Vector2)EditorGUILayout.Vector2IntField(new GUIContent("Pixel Position", "The x and y position that you also have to enter in the software."), new Vector2Int((int)_pixelPosition.x, (int)_pixelPosition.y));
+                //sensor.material.SetVector("_pixelPosition", _pixelPosition);
 
                 //Sensor camera length, width
-                EditorGUI.BeginChangeCheck();
-                sensor.camera.farClipPlane = EditorGUILayout.FloatField("Depth", sensor.camera.farClipPlane);
-                if (EditorGUI.EndChangeCheck())
-                    sensor.camera.transform.position = sensor.camera.transform.parent.position + sensor.camera.transform.parent.rotation * Vector3.forward * -sensor.camera.farClipPlane;
-                sensor.camera.orthographicSize = EditorGUILayout.FloatField("Width", sensor.camera.orthographicSize);
+                //EditorGUI.BeginChangeCheck();
+                //sensor.camera.farClipPlane = EditorGUILayout.FloatField("Depth", sensor.camera.farClipPlane);
+                //if (EditorGUI.EndChangeCheck())
+                //    sensor.camera.transform.position = sensor.camera.transform.parent.position + sensor.camera.transform.parent.rotation * Vector3.forward * -sensor.camera.farClipPlane;
+                //sensor.camera.orthographicSize = EditorGUILayout.FloatField("Width", sensor.camera.orthographicSize);
 
                 EditorGUILayout.Space();
                 EditorGUILayout.Space();
@@ -197,13 +232,48 @@ namespace Thry.VRBrations
             }
         }
 
+        private void ValidateSensorPositions()
+        {
+            HashSet<(int, int)> usedPositions = new HashSet<(int, int)>();
+            List<PlacedSensor> invalids = new List<PlacedSensor>();
+            foreach(PlacedSensor s in placedSensors)
+            {
+                Vector4 pos = s.material.GetVector("_pixelPosition");
+                bool valid = pos.x >= 0 && pos.x <= VRCToysUI.MAX_X && pos.y >= 0 && pos.y <= VRCToysUI.MAX_Y && usedPositions.Contains(((int)pos.x, (int)pos.y)) == false;
+                if (valid)
+                {
+                    usedPositions.Add(((int)pos.x, (int)pos.y));
+                }
+                else
+                {
+                    invalids.Add(s);
+                }
+            }
+            foreach(PlacedSensor s in invalids)
+            {
+                Vector4 pos = s.material.GetVector("_pixelPosition");
+                pos.x = 0;
+                pos.y = 0;
+                while(usedPositions.Contains(((int)pos.x, (int)pos.y)))
+                {
+                    pos.x += 1;
+                    if(pos.x > VRCToysUI.MAX_X)
+                    {
+                        pos.x = 0;
+                        pos.y += 1;
+                    }
+                }
+                s.material.SetVector("_pixelPosition", pos);
+            }
+        }
+
         private void GUIUpdateSetup()
         {
             EditorGUILayout.Space();
             GUILayout.Label("<b><size=15>" + "Update Setup" + "</size></b>", Styles.RichText);
             if (GUILayout.Button("Update Setup"))
             {
-                ToyControllerSetup.SetupAvatar(placedSensors, new SetupData(avatarScript.gameObject, true));
+                VRbrationsSetup.SetupAvatar(placedSensors, new SetupData(avatarScript.gameObject, true));
             }
         }
 
@@ -213,13 +283,13 @@ namespace Thry.VRBrations
             GUILayout.Label("<b><size=15>" + "Delete Setup" + "</size></b>", Styles.RichText);
             if (GUILayout.Button("Clear Setup"))
             {
-                ToyControllerSetup.CleanOldSetup(avatarScript.gameObject);
+                VRbrationsSetup.CleanOldSetup(avatarScript.gameObject);
                 placedSensors.Clear();
             }
         }
-        #endregion
+#endregion
 
-        #region Scene GUI
+#region Scene GUI
         void OnSceneGUI()
         {
             avatarScript = target as vrbrations;
@@ -276,14 +346,16 @@ namespace Thry.VRBrations
 
                     Handles.color = sens;
                     Matrix4x4 mat = Handles.matrix;
+                    t.localScale = Vector3.one;
                     Handles.matrix = t.localToWorldMatrix * Matrix4x4.Scale(new Vector3(sensor.camera.orthographicSize * 2, sensor.camera.orthographicSize * 2, sensor.camera.farClipPlane));
+                    t.localScale = Vector3.zero;
                     Handles.CylinderHandleCap(1,  Vector3.back * 0.5f, Quaternion.identity, 1, EventType.Repaint);
                     Handles.matrix = mat;
                 }
                 Handles.color = def;
             }
         }
-        #endregion
+#endregion
 
         public static void ToggleGizmos(bool gizmosOn)
         {
@@ -319,15 +391,13 @@ namespace Thry.VRBrations
         public GameObject avatarObject;
         public int sensorCount;
         public List<SensorOptions> sensor_Positions;
-        public bool addDesktopUseability;
         public bool fromSave;
 
-        public SetupData(GameObject avatarObject, int sensorCount, List<SensorOptions> sensor_Positions, bool addDesktopUseability)
+        public SetupData(GameObject avatarObject, int sensorCount, List<SensorOptions> sensor_Positions)
         {
             this.avatarObject = avatarObject;
             this.sensorCount = sensorCount;
             this.sensor_Positions = sensor_Positions;
-            this.addDesktopUseability = addDesktopUseability;
             this.fromSave = false;
         }
 
@@ -336,20 +406,18 @@ namespace Thry.VRBrations
             this.avatarObject = avatarObject;
             this.sensorCount = 0;
             this.sensor_Positions = null;
-            this.addDesktopUseability = false;
             this.fromSave = true;
         }
     }
 
-    class ToyControllerSetup : Editor
+    class VRbrationsSetup : Editor
     {
         const string SHADER_NAME_SENSOR = "VRBrations/Sensor";
         const string SHADER_NAME_MAIN = "VRBrations/Main";
         const float CAMERA_FOV = 59.5f;
         const float CAMERA_FOV_MAX_DELTA = 1;
 
-        const string CAMERA_OVERRENDERER_NAME = "[Toys] Camera Overrender";
-        const string HEAD_OBJ_NAME = "[Toys] Head";
+        public const string VRBRATIONS_PREFIX = "[VRBrations]";
 
         public static void FindAvatarSensors(List<PlacedSensor> placedSensor, SetupData setupData, List<GameObject> foundSensors = null)
         {
@@ -357,7 +425,8 @@ namespace Thry.VRBrations
             if(foundSensors == null || foundSensors.Any(o => o == null))
             {
                 foundSensors = new List<GameObject>();
-                FindDeepChildren(setupData.avatarObject.transform, "[Toys] Sensor", foundSensors);
+                FindDeepChildren(setupData.avatarObject.transform, VRBRATIONS_PREFIX+" Sensor", foundSensors);
+                FindDeepChildren(setupData.avatarObject.transform, "[Toys]"+" Sensor", foundSensors);
             }
             foreach (GameObject s in foundSensors)
             {
@@ -379,31 +448,33 @@ namespace Thry.VRBrations
             Animator animator = setupData.avatarObject.GetComponent<Animator>();
             if (animator == null)
             {
-                Debug.LogError("[Thry][ToyController] Could not find avatar animator.");
+                Debug.LogError("[Thry][VRbrations] Could not find avatar animator.");
                 return;
             }
             Avatar avatar = animator.avatar;
             if (avatar == null)
             {
-                Debug.LogError("[Thry][ToyController] Could not find animator avatar reference.");
+                Debug.LogError("[Thry][VRbrations] Could not find animator avatar reference.");
                 return;
             }
             string path = AssetDatabase.GetAssetPath(avatar);
 
             if (string.IsNullOrEmpty(path))
             {
-                Debug.LogError("[Thry][ToyController] Could not find prefab path.");
+                Debug.LogError("[Thry][VRbrations] Could not find prefab path.");
                 return;
             }
 
             string avatarDirectory = Path.GetDirectoryName(path);
-            string directory = avatarDirectory + "/toyController";
-            if (Directory.Exists(directory) == false) AssetDatabase.CreateFolder(avatarDirectory, "toyController");
+            string vrbrationsDirectory = avatarDirectory + "/VRbrations";
+            if (Directory.Exists(vrbrationsDirectory) == false) AssetDatabase.CreateFolder(avatarDirectory, "VRbrations");
+            string vrationsAvatarDirectory = avatarDirectory + "/VRbrations/"+setupData.avatarObject.name;
+            if (Directory.Exists(vrationsAvatarDirectory) == false) AssetDatabase.CreateFolder(vrbrationsDirectory, setupData.avatarObject.name);
 
             HumanDescription humanDescription = new HumanDescription();
             if (!GetHumanDescription(path, ref humanDescription))
             {
-                Debug.LogError("[Thry][ToyController] Could not find humanoid rig.");
+                Debug.LogError("[Thry][VRbrations] Could not find humanoid rig.");
                 return;
             }
             HumanBone[] bones = humanDescription.human;
@@ -414,19 +485,26 @@ namespace Thry.VRBrations
 
             float fov = CAMERA_FOV + UnityEngine.Random.Range(0, CAMERA_FOV_MAX_DELTA);
 
-            RenderTexture[] textures = CreateRenderTextures("sensor_" + setupData.avatarObject.name, directory, setupData);
+            RenderTexture[] textures = CreateRenderTextures("sensor_" + setupData.avatarObject.name, vrationsAvatarDirectory, setupData);
 
-            CreateSensorCameras(textures, bones, directory, fov, setupData, placedSensors);
+            CreateSensorCameras(textures, bones, vrationsAvatarDirectory, fov, setupData, placedSensors);
 
-            AddDepthGet(setupData.avatarObject);
-            CreateMainWriter(setupData, directory, fov);
+            GameObject mainWriter = CreateMainWriter(setupData, vrationsAvatarDirectory, fov);
+            AddDepthGet(mainWriter);
 
-            RestoreSavedSetup(placedSensors, setupData.avatarObject.transform);
+            if (setupData.fromSave) RestoreSavedSetup(placedSensors, setupData.avatarObject.transform);
+
+            //Scale All to zero, animations will scale back up
+            mainWriter.transform.localScale = Vector3.zero;
+            foreach (PlacedSensor p in placedSensors) p.gameObject.transform.localScale = Vector3.zero;
+
+            CreateAnimations(setupData.avatarObject, placedSensors, mainWriter, vrationsAvatarDirectory);
         }
 
         public static void CleanOldSetup(GameObject avatarObject)
         {
             DeleteDeepChildStartsWith(avatarObject.transform, "[Toys]");
+            DeleteDeepChildStartsWith(avatarObject.transform, VRBRATIONS_PREFIX);
         }
 
         struct SavedSensors
@@ -440,6 +518,7 @@ namespace Thry.VRBrations
             public Vector4 pixelPosition;
             public Vector2 cameraScaling;
             public bool selfActive;
+            public string encodedName;
         }
         private static List<SavedSensors> savedSensorSetup;
         private static bool savedDesktopUseable;
@@ -447,7 +526,6 @@ namespace Thry.VRBrations
         {
             savedSensorSetup = new List<SavedSensors>();
             setupData.sensorCount = placedSensors.Count();
-            setupData.addDesktopUseability = FindDeepChild(setupData.avatarObject.transform, HEAD_OBJ_NAME) != null;
             setupData.sensor_Positions = new List<SensorOptions>();
             int i = 0;
             foreach (PlacedSensor s in placedSensors)
@@ -461,6 +539,7 @@ namespace Thry.VRBrations
                 saved.parentName = s.gameObject.transform.parent.name;
                 saved.name = s.gameObject.transform.name;
                 saved.pixelPosition = s.material.HasProperty("_pixelPosition") ? s.material.GetVector("_pixelPosition") : new Vector4(i, 0, 0,0);
+                saved.encodedName = VRCToysUI.GetSensorName(s.material);
                 saved.cameraScaling = new Vector2(s.camera.farClipPlane, s.camera.orthographicSize);
                 savedSensorSetup.Add(saved);
 
@@ -475,16 +554,17 @@ namespace Thry.VRBrations
 
         private static void RestoreSavedSetup(List<PlacedSensor> placedSensors, Transform avatarRoot)
         {
-            for(int i= 0;i < placedSensors.Count;i++)
+            for(int i= 0;i < placedSensors.Count && i<savedSensorSetup.Count;i++)
             {
                 placedSensors[i].gameObject.name = savedSensorSetup[i].name;
                 if(savedSensorSetup[i].parent) placedSensors[i].gameObject.transform.parent = savedSensorSetup[i].parent;
                 else if(savedSensorSetup[i].parentName != null) placedSensors[i].gameObject.transform.parent =  FindDeepChild(avatarRoot, savedSensorSetup[i].parentName);
                 placedSensors[i].gameObject.transform.position = savedSensorSetup[i].position;
                 placedSensors[i].gameObject.transform.rotation = savedSensorSetup[i].rotation;
-                placedSensors[i].gameObject.transform.localScale = savedSensorSetup[i].scale;
-                placedSensors[i].gameObject.SetActive(savedSensorSetup[i].selfActive);
+                //placedSensors[i].gameObject.transform.localScale = savedSensorSetup[i].scale;
+                //placedSensors[i].gameObject.SetActive(savedSensorSetup[i].selfActive);
                 placedSensors[i].material.SetVector("_pixelPosition", savedSensorSetup[i].pixelPosition);
+                VRCToysUI.SetSensorName(placedSensors[i].material, savedSensorSetup[i].encodedName);
                 placedSensors[i].camera.orthographicSize = savedSensorSetup[i].cameraScaling.y;
                 placedSensors[i].camera.farClipPlane = savedSensorSetup[i].cameraScaling.x;
                 placedSensors[i].camera.transform.position = placedSensors[i].gameObject.transform.position + placedSensors[i].gameObject.transform.rotation * Vector3.back * savedSensorSetup[i].cameraScaling.x;
@@ -505,16 +585,17 @@ namespace Thry.VRBrations
             return renderTextures.ToArray();
         }
 
-        private static void CreateMainWriter(SetupData setupData, string folderpath, float _CameraFOV)
+        private static GameObject CreateMainWriter(SetupData setupData, string folderpath, float _CameraFOV)
         {
             Mesh quad = AssetDatabase.LoadAssetAtPath<Mesh>(AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("t:mesh VRCToysQuad")[0]));
             Shader shader = Shader.Find(SHADER_NAME_MAIN);
 
-            GameObject o = new GameObject("[Toys] Main Writer");
+            GameObject o = new GameObject(VRBRATIONS_PREFIX+" Main Writer");
+            o.SetActive(false);
             o.transform.parent = setupData.avatarObject.transform;
             o.transform.localPosition = Vector3.zero;
             o.transform.rotation = Quaternion.identity;
-            o.transform.localScale = Vector3.one * 0.000001f;
+            o.transform.localScale = Vector3.one * 0.00002f;
             o.layer = LayerMask.NameToLayer("PlayerLocal");
 
             MeshFilter meshFilter = o.AddComponent<MeshFilter>();
@@ -531,11 +612,13 @@ namespace Thry.VRBrations
             r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
             r.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
+            return o;
         }
 
         private static void AddDepthGet(GameObject avatarObj)
         {
-            GameObject o = new GameObject("[Toys] DepthGet");
+            GameObject o = new GameObject(VRBRATIONS_PREFIX+" DepthGet");
             o.transform.parent = avatarObj.transform;
             o.transform.localPosition = Vector3.zero;
             o.transform.rotation = Quaternion.LookRotation(Vector3.down);
@@ -570,17 +653,19 @@ namespace Thry.VRBrations
                 GameObject o = GetSensorTransform(i, bones, setupData);
 
                 Sensor_Position position = setupData.sensor_Positions[i].position;
-                o.name = "[Toys] Sensor_" + position + (doSensorPosCount[position] ? "_"+ sensorPosCount[position] : "");
+                string name = position + (doSensorPosCount[position] ? "_" + sensorPosCount[position] : "");
+                o.name = VRBRATIONS_PREFIX+" Sensor_" + name;
+                o.SetActive(false);
                 sensorPosCount[position] = sensorPosCount[position] + 1;
 
                 o.layer = LayerMask.NameToLayer("PlayerLocal");
 
-                GameObject oChild = new GameObject("[Toys] Camera_" + i);
+                GameObject oChild = new GameObject(VRBRATIONS_PREFIX+" Camera_" + i);
                 oChild.transform.position = o.transform.position + o.transform.rotation * Vector3.forward * -0.2f;
                 oChild.transform.parent = o.transform;
                 oChild.transform.localRotation = Quaternion.identity;
                 oChild.layer = LayerMask.NameToLayer("PlayerLocal");
-                oChild.transform.localScale = Vector3.one * 0.000002f;
+                oChild.transform.localScale = Vector3.one * 0.00002f;
 
                 Camera c = oChild.AddComponent<Camera>();
                 c.orthographic = true;
@@ -597,8 +682,9 @@ namespace Thry.VRBrations
                 Material m = new Material(shader);
                 m.SetFloat("_CameraFOV", cameraFovId);
                 m.SetTexture("_depthcam", textures[i]);
-                m.SetVector("_pixelPosition", new Vector4(i, 0, 0, 0));
+                m.SetVector("_pixelPosition", new Vector4(i % (VRCToysUI.MAX_X+1), i / (VRCToysUI.MAX_X+1), 0, 0));
                 m.SetInt("_CheckPenetratorOrface", setupData.sensor_Positions[i].penetrator != Penetrator_Options.None?1:0);
+                VRCToysUI.SetSensorName(m, name);
                 if(setupData.sensor_Positions[i].penetrator != Penetrator_Options.None) m.EnableKeyword("GEOM_TYPE_BRANCH");
                 AssetDatabase.CreateAsset(m, folderpath + "/pixelWriter_" + setupData.avatarObject.name + "_" + i + ".mat");
 
@@ -626,8 +712,8 @@ namespace Thry.VRBrations
             }
         }
 
-        const string ORIFACE_LIGHT_POSITION_NAME = "[Toys] Orfice Position";
-        const string ORIFACE_LIGHT_NORMAL_NAME = "[Toys] Orfice Normal";
+        const string ORIFACE_LIGHT_POSITION_NAME = VRBRATIONS_PREFIX+" Orfice Position";
+        const string ORIFACE_LIGHT_NORMAL_NAME = VRBRATIONS_PREFIX+" Orfice Normal";
         private static void CreateOrfaceLights(Transform parent)
         {
             GameObject objPosition = new GameObject(ORIFACE_LIGHT_POSITION_NAME);
@@ -763,5 +849,149 @@ namespace Thry.VRBrations
             return false;
         }
 
+        private static void CreateAnimations(GameObject avatarObject, List<PlacedSensor> placedSensors, GameObject mainWriter, string avatarVRbrationsDirectory)
+        {
+#if VRC_SDK_VRCSDK3
+            VRCAvatarDescriptor descriptor = avatarObject.GetComponent<VRCAvatarDescriptor>();
+            //make sure custom layers are enabled
+            descriptor.customizeAnimationLayers = true;
+            //Get fx animator
+            CustomAnimLayer[] layers = descriptor.baseAnimationLayers;
+            //CustomAnimLayer fxLayer = layers.Where(l => l.type == AnimLayerType.FX).FirstOrDefault();
+            CustomAnimLayer fxLayer = layers[4];
+            AnimatorController fxAnimator = null;
+            //If no fx animator exists create one
+            if (fxLayer.type != AnimLayerType.FX || fxLayer.animatorController == null)
+            {
+                fxAnimator = AnimatorController.CreateAnimatorControllerAtPath(avatarVRbrationsDirectory + "/vrbrationsFXLayer.controller");
+                fxLayer.type = AnimLayerType.FX;
+                fxLayer.isEnabled = true;
+                fxLayer.isDefault = false;
+                fxLayer.animatorController = fxAnimator;
+                layers[4] = fxLayer;
+                descriptor.baseAnimationLayers = layers;
+            }
+            else
+            {
+                string path = AssetDatabase.GetAssetPath(fxLayer.animatorController);
+                if(path != null)
+                {
+                    fxAnimator = AssetDatabase.LoadAssetAtPath<AnimatorController>(path);
+                }
+                else
+                {
+                    Debug.LogError("Error creating animator: path now found.");
+                }
+                if (fxAnimator == null)
+                {
+                    Debug.LogError("Error creating animator: animator is null.");
+                }
+            }
+            //else check if [Toys] Layers exists and remove them
+            for(int i= fxAnimator.layers.Length - 1; i >= 0; i--)
+            {
+                if (fxAnimator.layers[i].name.StartsWith(VRBRATIONS_PREFIX))
+                {
+                    fxAnimator.RemoveLayer(i);
+                }
+            }
+            //Add IsLocal Parameter if ddoesnt exisit
+            bool hasLocalParameter = fxAnimator.parameters.Where(p => p.name == "IsLocal" && p.type == AnimatorControllerParameterType.Bool).Count() > 0;
+            if (!hasLocalParameter)
+            {
+                fxAnimator.AddParameter("IsLocal", AnimatorControllerParameterType.Bool);
+            }
+
+            CreateLayerForToggle(mainWriter, VRBRATIONS_PREFIX+" Main", "VRbrations Main", true, avatarVRbrationsDirectory, avatarObject, fxAnimator);
+            foreach(PlacedSensor s in placedSensors)
+            {
+                string name = s.gameObject.name.Replace("[Toys]", "").Replace(VRBRATIONS_PREFIX,"");
+                CreateLayerForToggle(s.gameObject, VRBRATIONS_PREFIX+" " + name, "VRbrations "+ name, false, avatarVRbrationsDirectory, avatarObject, fxAnimator);
+            }
+#endif
+        }
+
+        private static void CreateLayerForToggle(GameObject objectToToggle, string layername, string onParameterName, bool localOnly, string directory, GameObject avatarObject, AnimatorController fxAnimator)
+        {
+            //Add parameter
+            bool hasParameter = fxAnimator.parameters.Where(p => p.name == onParameterName && p.type == AnimatorControllerParameterType.Bool).Count() > 0;
+            if (!hasParameter)
+            {
+                AnimatorControllerParameter animatorControllerParameter = new AnimatorControllerParameter();
+                animatorControllerParameter.name = onParameterName;
+                animatorControllerParameter.type = AnimatorControllerParameterType.Bool;
+                animatorControllerParameter.defaultBool = true;
+                fxAnimator.AddParameter(animatorControllerParameter);
+            }
+
+            //Create Layer
+            AnimatorControllerLayer layer = new AnimatorControllerLayer();
+            layer.name = layername;
+            layer.defaultWeight = 1;
+            layer.stateMachine = new AnimatorStateMachine();
+            fxAnimator.AddLayer(layer);
+
+            //Add states
+            AnimatorState onState = layer.stateMachine.AddState("On");
+            AnimatorState offState = layer.stateMachine.AddState("Off");
+            onState.writeDefaultValues = false;
+            offState.writeDefaultValues = false;
+            layer.stateMachine.defaultState = offState;
+
+            //add state transitions
+            AnimatorStateTransition transitionOn = layer.stateMachine.AddAnyStateTransition(onState);
+            AnimatorStateTransition transitionOff = layer.stateMachine.AddAnyStateTransition(offState);
+            if(localOnly) transitionOn.AddCondition(AnimatorConditionMode.If, 0, "IsLocal");
+            transitionOn.AddCondition(AnimatorConditionMode.If, 0, onParameterName);
+            transitionOff.AddCondition(AnimatorConditionMode.IfNot, 0, onParameterName);
+
+            //create curves
+            AnimationCurve onCurve = new AnimationCurve();
+            onCurve.AddKey(0, 1);
+            onCurve.AddKey(60, 1);
+            AnimationCurve offCurve = new AnimationCurve();
+            offCurve.AddKey(0, 0);
+            offCurve.AddKey(60, 0);
+
+            //add motions
+            onState.motion = CreateClip(objectToToggle, avatarObject, onCurve, directory, layername + "_On");
+            offState.motion = CreateClip(objectToToggle, avatarObject, offCurve, directory, layername + "_Off");
+        }
+
+        private static AnimationClip CreateClip(GameObject objectToToggle, GameObject avatarObject, AnimationCurve curve, string directory, string name)
+        {
+            AnimationClip clip = new AnimationClip();
+            AddActiveAndScaleCurves(objectToToggle, avatarObject, curve, clip);
+            AssetDatabase.CreateAsset(clip, directory + "/"+ name + ".anim");
+            return clip;
+        }
+
+        private static void AddActiveAndScaleCurves(GameObject objectToToggle, GameObject avatarObject, AnimationCurve curve, AnimationClip clip)
+        {
+            string path = GetPath(objectToToggle, avatarObject);
+            clip.SetCurve(path, typeof(GameObject), "m_IsActive", curve);
+            clip.SetCurve(path, typeof(Transform), "m_LocalScale.x", curve);
+            clip.SetCurve(path, typeof(Transform), "m_LocalScale.y", curve);
+            clip.SetCurve(path, typeof(Transform), "m_LocalScale.z", curve);
+        }
+
+        private static string GetPath(GameObject sensor, GameObject avatar)
+        {
+            Transform o = sensor.transform.parent;
+            List<Transform> path = new List<Transform>();
+            while(o != avatar.transform)
+            {
+                path.Add(o);
+                o = o.parent;
+            }
+            path.Reverse();
+            StringBuilder sb = new StringBuilder();
+            foreach (Transform t in path)
+            {
+                sb.Append(t.name + "/");
+            }
+            sb.Append(sensor.name);
+            return sb.ToString();
+        }
     }
 }
