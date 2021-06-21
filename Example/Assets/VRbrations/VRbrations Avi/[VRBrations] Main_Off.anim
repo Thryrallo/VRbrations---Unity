@@ -6,7 +6,7 @@ AnimationClip:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: '[VRBrations] Main_Off'
+  m_Name: '[VRbrations] Main_Off'
   serializedVersion: 6
   m_Legacy: 0
   m_Compressed: 0
@@ -40,7 +40,8 @@ AnimationClip:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    path: '[VRBrations] Main Writer'
+    path: mixamorig:Hips/mixamorig:Spine/mixamorig:Spine1/mixamorig:Spine2/mixamorig:Neck/[VRbrations][Head]/[VRbrations]
+      Overrenderer
   m_FloatCurves:
   - curve:
       serializedVersion: 2
@@ -67,7 +68,8 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_IsActive
-    path: '[VRBrations] Main Writer'
+    path: mixamorig:Hips/mixamorig:Spine/mixamorig:Spine1/mixamorig:Spine2/mixamorig:Neck/[VRbrations][Head]/[VRbrations]
+      Overrenderer
     classID: 1
     script: {fileID: 0}
   m_PPtrCurves: []

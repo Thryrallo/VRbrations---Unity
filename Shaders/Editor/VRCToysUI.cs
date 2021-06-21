@@ -24,8 +24,8 @@ namespace Thry.VRBrations
 
         MaterialProperty _HeaderTexture = null;
 
-        public const int MAX_X = 5;
-        public const int MAX_Y = 2;
+        public const int MAX_X = 39;
+        public const int MAX_Y = 0;
 
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] properties)
         {
@@ -53,7 +53,11 @@ namespace Thry.VRBrations
             if (_pixelPosition != null && _depthcam != null)
             {
                 GUILayout.Label("General", EditorStyles.boldLabel);
-                _pixelPosition.vectorValue = (Vector2)EditorGUILayout.Vector2IntField(new GUIContent("Pixel Position", "Set the ouput position."), new Vector2Int((int)Mathf.Clamp(_pixelPosition.vectorValue.x, 0, MAX_X), (int)Mathf.Clamp(_pixelPosition.vectorValue.y, 0, MAX_Y)));
+#if UDON
+                _pixelPosition.vectorValue = (Vector2)EditorGUILayout.Vector2IntField(new GUIContent("Pixel Position", "Set the ouput position."), new Vector2Int((int)Mathf.Clamp(_pixelPosition.vectorValue.x, MAX_X-10, MAX_X), (int)Mathf.Clamp(_pixelPosition.vectorValue.y, 0, MAX_Y)));
+#else
+                _pixelPosition.vectorValue = (Vector2)EditorGUILayout.Vector2IntField(new GUIContent("Pixel Position", "Set the ouput position."), new Vector2Int((int)Mathf.Clamp(_pixelPosition.vectorValue.x, 1, MAX_X), (int)Mathf.Clamp(_pixelPosition.vectorValue.y, 0, MAX_Y)));
+#endif
 
                 materialEditor.TexturePropertySingleLine(new GUIContent(_depthcam.displayName), _depthcam);
             }
@@ -109,6 +113,11 @@ namespace Thry.VRBrations
         const string sensorNameColorPropertiesStart = "_Text";
         public static void TextGUI(Material m, string label)
         {
+            if (m == null)
+            {
+                EditorGUILayout.HelpBox("Material has been deleted.", MessageType.Error);
+                return;
+            }
             EditorGUI.BeginChangeCheck();
             string text = EditorGUILayout.TextField(label, GetSensorName(m));
             if (EditorGUI.EndChangeCheck())
@@ -121,19 +130,17 @@ namespace Thry.VRBrations
         {
             Color[] colors = TextToColors(name);
             int i = 0;
-            while (m.HasProperty(sensorNameColorPropertiesStart + i) && m.HasProperty(sensorNameColorPropertiesStart + (i + 1)))
+            while (m.HasProperty(sensorNameColorPropertiesStart + i))
             {
-                if(i + 1 < colors.Length)
+                if(i < colors.Length)
                 {
                     m.SetColor(sensorNameColorPropertiesStart + i, colors[i]);
-                    m.SetColor(sensorNameColorPropertiesStart + (i + 1), colors[i+1]);
                 }
                 else
                 {
                     m.SetColor(sensorNameColorPropertiesStart + i, Color.black);
-                    m.SetColor(sensorNameColorPropertiesStart + (i + 1), Color.black);
                 }
-                i += 2;
+                i += 1;
             }
         }
 
@@ -143,45 +150,60 @@ namespace Thry.VRBrations
             {
                 int i = 0;
                 StringBuilder sb = new StringBuilder();
-                while (m.HasProperty(sensorNameColorPropertiesStart + i) && m.HasProperty(sensorNameColorPropertiesStart + (i+1)))
+                while (m.HasProperty(sensorNameColorPropertiesStart + i))
                 {
-                    char c = ColorsToChar(m.GetColor(sensorNameColorPropertiesStart + i), m.GetColor(sensorNameColorPropertiesStart + (i + 1)));
-                    if (c != (char)0) sb.Append(c);
-                    i += 2;
+                    char[] c = ColorToChars(m.GetColor(sensorNameColorPropertiesStart + i));
+                    if (c[0] != (char)0) sb.Append(c[0]);
+                    if (c[1] != (char)0) sb.Append(c[1]);
+                    i += 1;
                 }
                 return sb.ToString();
             }
             return "";
         }
 
-        public static char ColorsToChar(Color c1, Color c2)
+        public static char[] ColorToChars(Color c)
         {
-            StringBuilder binaryString = new StringBuilder();
-            binaryString.Append((c1.r == 1) ? "1" : "0");
-            binaryString.Append((c1.g == 1) ? "1" : "0");
-            binaryString.Append((c1.b == 1) ? "1" : "0");
-            binaryString.Append((c2.r == 1) ? "1" : "0");
-            binaryString.Append((c2.g == 1) ? "1" : "0");
-            binaryString.Append((c2.b == 1) ? "1" : "0");
-            int asInt = Convert.ToInt32(binaryString.ToString(), 2);
-            return CompressedIntToChar(asInt);
+            int binaryOne = 0;
+            int binaryTwo = 0;
+
+            int r = (int)((c.r * 255 + 8) / 17);
+            binaryOne += (r & 12) << 2;
+            binaryTwo += (r & 3) << 4;
+
+            binaryOne += (int)((c.g * 255 + 8) / 17);
+            binaryTwo += (int)((c.b * 255 + 8) / 17);
+
+            return new char[] { CompressedIntToChar(binaryOne), CompressedIntToChar(binaryTwo) };
         }
 
         public static Color[] TextToColors(string text)
         {
-            Color[] colors = new Color[text.Length * 2];
-            for(int i = 0; i < text.Length; i++)
+            Color[] colors = new Color[(text.Length+1) / 2];
+            for(int i = 0; i < text.Length; i += 2)
             {
-                string binaryString = System.Convert.ToString(CharToCompressedInt(text[i]), 2).PadLeft(6, '0');
-                int[] binary = new int[6];
-                for(int j = 0; j < binary.Length; j++)
+                int binaryOne = CharToCompressedInt(text[i]);
+                int binaryTwo = 0;
+                if (i + 1 < text.Length) binaryTwo = CharToCompressedInt(text[i + 1]);
+                if (i == 0)
                 {
-                    binary[j] = (binaryString[j] == '1') ? 1 : 0;
+                    Debug.Log(binaryOne + " , " + binaryTwo);
+                    Debug.Log(((binaryOne & 15) / 15f) + " , " + ((binaryTwo & 15) / 15f));
                 }
-                colors[i * 2 + 0] = new Color(binary[0], binary[1], binary[2]);
-                colors[i * 2 + 1] = new Color(binary[3], binary[4], binary[5]);
+                colors[i / 2] = new Color( (((binaryOne >> 2) & 12) | ((binaryTwo >> 4) & 3)) / 15f , (binaryOne & 15) / 15f, (binaryTwo & 15) / 15f);
             }
             return colors;
+        }
+
+        private static int[] CharToBinary(char c)
+        {
+            string binaryString = System.Convert.ToString(CharToCompressedInt(c), 2).PadLeft(6, '0');
+            int[] binary = new int[6];
+            for (int j = 0; j < binary.Length; j++)
+            {
+                binary[j] = (binaryString[j] == '1') ? 1 : 0;
+            }
+            return binary;
         }
 
         public static int CharToCompressedInt(char c)

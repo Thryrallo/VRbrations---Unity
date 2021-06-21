@@ -20,7 +20,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _depthcam:
-        m_Texture: {fileID: 8400000, guid: 10ea1de0db2c34b4eb547cd2a064e481, type: 2}
+        m_Texture: {fileID: 8400000, guid: 8170d7cd86385f64284ab90197a96c0c, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Floats:
@@ -30,28 +30,12 @@ Material:
     m_Colors:
     - _OverideDepth: {r: 0, g: 1, b: 0, a: 0}
     - _OverideWidth: {r: 0, g: 1, b: 0, a: 0}
-    - _Text0: {r: 0, g: 0, b: 1, a: 1}
-    - _Text1: {r: 1, g: 1, b: 0, a: 1}
-    - _Text10: {r: 1, g: 0, b: 1, a: 1}
-    - _Text11: {r: 1, g: 0, b: 1, a: 1}
-    - _Text12: {r: 0, g: 0, b: 0, a: 1}
-    - _Text13: {r: 0, g: 0, b: 0, a: 1}
-    - _Text14: {r: 0, g: 0, b: 0, a: 1}
-    - _Text15: {r: 0, g: 0, b: 0, a: 1}
-    - _Text16: {r: 0, g: 0, b: 0, a: 1}
-    - _Text17: {r: 0, g: 0, b: 0, a: 1}
-    - _Text18: {r: 0, g: 0, b: 0, a: 1}
-    - _Text19: {r: 0, g: 0, b: 0, a: 1}
-    - _Text2: {r: 1, g: 1, b: 0, a: 1}
-    - _Text20: {r: 0, g: 0, b: 0, a: 1}
-    - _Text21: {r: 0, g: 0, b: 0, a: 1}
-    - _Text22: {r: 0, g: 0, b: 0, a: 1}
-    - _Text23: {r: 0, g: 0, b: 0, a: 1}
-    - _Text3: {r: 1, g: 1, b: 1, a: 1}
-    - _Text4: {r: 1, g: 1, b: 0, a: 1}
-    - _Text5: {r: 1, g: 0, b: 0, a: 1}
-    - _Text6: {r: 1, g: 1, b: 1, a: 1}
-    - _Text7: {r: 0, g: 0, b: 1, a: 1}
-    - _Text8: {r: 1, g: 0, b: 1, a: 1}
-    - _Text9: {r: 0, g: 0, b: 0, a: 1}
-    - _pixelPosition: {r: 0, g: 0, b: 0, a: 0}
+    - _Text0: {r: 0.2, g: 0.93333334, b: 0.46666667, a: 1}
+    - _Text1: {r: 1, g: 0.26666668, b: 0.6, a: 1}
+    - _Text2: {r: 0.6666667, g: 0.53333336, b: 0.8666667, a: 1}
+    - _Text3: {r: 0, g: 0, b: 0, a: 1}
+    - _Text4: {r: 0, g: 0, b: 0, a: 1}
+    - _Text5: {r: 0, g: 0, b: 0, a: 1}
+    - _Text6: {r: 0, g: 0, b: 0, a: 1}
+    - _Text7: {r: 0, g: 0, b: 0, a: 1}
+    - _pixelPosition: {r: 3, g: 0, b: 0, a: 0}

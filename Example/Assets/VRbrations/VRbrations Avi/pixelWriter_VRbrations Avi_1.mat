@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: pixelWriter_VRbrations Avi_1
   m_Shader: {fileID: 4800000, guid: 8238f8c0373b04649a1c98136bb66898, type: 3}
-  m_ShaderKeywords: 
+  m_ShaderKeywords: GEOM_TYPE_BRANCH
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -20,38 +20,22 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _depthcam:
-        m_Texture: {fileID: 8400000, guid: c5ce24be01a7b7f49a1d01f4c4f6c1c2, type: 2}
+        m_Texture: {fileID: 8400000, guid: 6c0e0cdd34a1ce3438464c4566d11433, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Floats:
-    - _CheckPenetratorOrface: 0
+    - _CheckPenetratorOrface: 1
     - _InShaderMultiplier: 1
     - _StencilRef: 73
     m_Colors:
     - _OverideDepth: {r: 0, g: 1, b: 0, a: 0}
     - _OverideWidth: {r: 0, g: 1, b: 0, a: 0}
-    - _Text0: {r: 0, g: 0, b: 1, a: 1}
-    - _Text1: {r: 1, g: 0, b: 1, a: 1}
-    - _Text10: {r: 0, g: 0, b: 0, a: 1}
-    - _Text11: {r: 0, g: 0, b: 0, a: 1}
-    - _Text12: {r: 0, g: 0, b: 0, a: 1}
-    - _Text13: {r: 0, g: 0, b: 0, a: 1}
-    - _Text14: {r: 0, g: 0, b: 0, a: 1}
-    - _Text15: {r: 0, g: 0, b: 0, a: 1}
-    - _Text16: {r: 0, g: 0, b: 0, a: 1}
-    - _Text17: {r: 0, g: 0, b: 0, a: 1}
-    - _Text18: {r: 0, g: 0, b: 0, a: 1}
-    - _Text19: {r: 0, g: 0, b: 0, a: 1}
-    - _Text2: {r: 1, g: 1, b: 1, a: 1}
-    - _Text20: {r: 0, g: 0, b: 0, a: 1}
-    - _Text21: {r: 0, g: 0, b: 0, a: 1}
-    - _Text22: {r: 0, g: 0, b: 0, a: 1}
-    - _Text23: {r: 0, g: 0, b: 0, a: 1}
-    - _Text3: {r: 0, g: 1, b: 0, a: 1}
-    - _Text4: {r: 1, g: 1, b: 1, a: 1}
-    - _Text5: {r: 0, g: 0, b: 1, a: 1}
-    - _Text6: {r: 1, g: 1, b: 1, a: 1}
-    - _Text7: {r: 0, g: 0, b: 1, a: 1}
-    - _Text8: {r: 0, g: 0, b: 0, a: 1}
-    - _Text9: {r: 0, g: 0, b: 0, a: 1}
+    - _Text0: {r: 0.2, g: 0.8666667, b: 0.6666667, a: 1}
+    - _Text1: {r: 1, g: 0.6, b: 0.6, a: 1}
+    - _Text2: {r: 0, g: 0, b: 0, a: 1}
+    - _Text3: {r: 0, g: 0, b: 0, a: 1}
+    - _Text4: {r: 0, g: 0, b: 0, a: 1}
+    - _Text5: {r: 0, g: 0, b: 0, a: 1}
+    - _Text6: {r: 0, g: 0, b: 0, a: 1}
+    - _Text7: {r: 0, g: 0, b: 0, a: 1}
     - _pixelPosition: {r: 1, g: 0, b: 0, a: 0}

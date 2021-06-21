@@ -30,8 +30,6 @@ Shader "VRBrations/Main" {
 				#pragma only_renderers d3d9 d3d11 glcore gles
 				#pragma target 3.0
 
-				#define HEADER_HEIGHT 15
-
 				#include "UnityCG.cginc"
 
 				uniform float4 _pixelPosition;
@@ -84,33 +82,37 @@ Shader "VRBrations/Main" {
 			float4 frag(VertexOutput i, float facing : VFACE) : COLOR {
 				float3 data = (float3)0;
 				int2 pixel = int2(floor(i.uv0.x * 100 / PIXEL_WIDTH), floor(i.uv0.y * 100 / PIXEL_HEIGHT));
-				int2 dataIndex = int2(floor(pixel.x / 3), pixel.y);
-				int dataSubIndex = uint(pixel.x) % 3;
 
-				int isHeader = i.uv0.y < float(HEADER_HEIGHT) / 100;
-				int isSensor = pixel.x < 12 && pixel.y < 7;
+				int isHeader = pixel.y < SENSOR_HEIGHT;
+				int isSensor = pixel.x < SENSOR_WIDTH && pixel.y < SENSOR_HEIGHT;
+
+				//Pixel wise representation:
+				// CheckValue1 | CheckValue2 |
+				// Data.x      | Data.y      | Data.z    | Data.w
+				//             |             |           |
+				// text12      | text34      | text56    | text78
+				// text910     | text1112    | text1314  | text1516
 
 				//Data Color References
-				data += (pixel.x == 0) * (pixel.y == 3) * float3(0, 0, 0);
-				data += (pixel.x == 1) * (pixel.y == 3) * float3(0, 0, 1);
-				data += (pixel.x == 2) * (pixel.y == 3) * float3(0, 1, 0);
-				data += (pixel.x == 3) * (pixel.y == 3) * float3(0, 1, 1);
-				data += (pixel.x == 4) * (pixel.y == 3) * float3(1, 0, 0);
-				data += (pixel.x == 5) * (pixel.y == 3) * float3(1, 0, 1);
-				data += (pixel.x == 6) * (pixel.y == 3) * float3(1, 1, 0);
-				data += (pixel.x == 7) * (pixel.y == 3) * float3(1, 1, 1);
-				data += EncodeShort(3, 3, 175, dataIndex, dataSubIndex);
+				data += EncodeShort(0, 0, 175, pixel);
+				data += EncodeShort(1, 0, 69, pixel);
 
 				//Audio Link Data
 				int isAudioLinkPresent;
 				float4 audioLink = GetAudioLinkData(isAudioLinkPresent);
-				data += EncodeBool(0, 2, 0, isAudioLinkPresent, dataIndex, dataSubIndex);
-				data += EncodeFloat(0, 1, audioLink.x, dataIndex, dataSubIndex);
-				data += EncodeFloat(1, 1, audioLink.y, dataIndex, dataSubIndex);
-				data += EncodeFloat(2, 1, audioLink.z, dataIndex, dataSubIndex);
-				data += EncodeFloat(3, 1, audioLink.w, dataIndex, dataSubIndex);
+				data += EncodeBool(2, 0, isAudioLinkPresent, pixel);
+				data += EncodeFloat(0, 1, audioLink.x, pixel);
+				data += EncodeFloat(1, 1, audioLink.y, pixel);
+				data += EncodeFloat(2, 1, audioLink.z, pixel);
+				data += EncodeFloat(3, 1, audioLink.w, pixel);
 
-				float2 headerUV = saturate(i.uv0 * float2(-4, -400 / float(HEADER_HEIGHT)) + float2(2.5, 3.75));
+				//For testing color accuracy
+				/*data += (pixel.y == 1) * (pixel.x == 0) * float3(0.0f,0.1f,0.2f);
+				data += (pixel.y == 1) * (pixel.x == 1) * float3(0.3f,0.4f,0.5f);
+				data += (pixel.y == 1) * (pixel.x == 2) * float3(0.6f,0.7f,0.8f);
+				data += (pixel.y == 1) * (pixel.x == 3) * float3(0.9f,1.0f,1.0f);*/
+
+				float2 headerUV = saturate((i.uv0 + float2(-1,0)) * float2(25 / (SENSOR_WIDTH * PIXEL_WIDTH), -100 / (SENSOR_HEIGHT * PIXEL_HEIGHT)) + float2(1,1));
 				float4 header = tex2D(_HeaderTexture, headerUV);
 				data += header.rgb * header.a;
 
@@ -118,7 +120,7 @@ Shader "VRBrations/Main" {
 				//data = float3(floatIndex / _ScreenParams.xy * float2(SENSOR_WIDTH, SENSOR_HEIGHT) * subPixel, 0);
 				data += (isSensor == 0) * float3(0.05f, 0, 0.05f);
 
-				float4 finalColor = float4(data * 0.5f, isHeader);
+				float4 finalColor = float4(data, isHeader);
 				
 				return finalColor;
 			}

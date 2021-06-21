@@ -7,6 +7,7 @@ namespace Thry.VRBrations
     public class vrbrations : MonoBehaviour
     {
         public bool editSensors = false;
+        public bool isSetup = false;
         public List<GameObject> foundSensorsObjects; //set when looking for sensors to check if has vrbrations
 
         public void Destroy()
