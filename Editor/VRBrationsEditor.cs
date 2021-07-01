@@ -352,8 +352,8 @@ namespace Thry.VRBrations
 
                     Handles.color = sens;
                     Matrix4x4 mat = Handles.matrix;
-                    Handles.matrix = t.localToWorldMatrix * Matrix4x4.Scale(new Vector3(sensor.camera.orthographicSize * 2, sensor.camera.orthographicSize * 2, sensor.camera.farClipPlane));
-                    Handles.CylinderHandleCap(1,  Vector3.back * 0.5f, Quaternion.identity, 1, EventType.Repaint);
+                    Handles.matrix = Matrix4x4.Translate(t.position) * Matrix4x4.Rotate(t.rotation) *  Matrix4x4.Scale(new Vector3(sensor.camera.orthographicSize * 2, sensor.camera.orthographicSize * 2, sensor.camera.farClipPlane));
+                    Handles.CylinderHandleCap(1, Vector3.back * 0.5f, Quaternion.identity, 1, EventType.Repaint);
                     Handles.matrix = mat;
                 }
                 Handles.color = def;
