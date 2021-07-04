@@ -209,8 +209,18 @@ namespace Thry.VRBrations
             foreach (PlacedSensor sensor in placedSensors)
             {
                 EditorGUILayout.LabelField("<b><size=12>" + sensor.gameObject.name + "</size></b>", Styles.RichText);
-
+                
                 VRCToysUI.TextGUI(sensor.material, "Encoded Name");
+
+                EditorGUI.BeginChangeCheck();
+                //int newVal = (int)((Penetrator_Options)EditorGUILayout.EnumPopup(new GUIContent("Penetrator Support", "Enable support for Raliv penetrator system"), (Penetrator_Options)sensor.material.GetFloat("_CheckPenetratorOrface") ));
+                bool penSup = EditorGUILayout.Toggle(new GUIContent("Penetrator Support", "Enable support for Raliv penetrator system"), sensor.material.GetFloat("_CheckPenetratorOrface") > 0);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    sensor.material.SetFloat("_CheckPenetratorOrface", penSup?1:0);
+                    if (penSup) sensor.material.EnableKeyword(VRCToysUI.KEYWORD_PENETRATOR);
+                    else sensor.material.DisableKeyword(VRCToysUI.KEYWORD_PENETRATOR);
+                }
 
                 //Pixel Position
                 //Vector4 _pixelPosition = sensor.material.GetVector("_pixelPosition");
@@ -759,7 +769,7 @@ namespace Thry.VRBrations
                 m.SetVector("_pixelPosition", new Vector4(i % (VRCToysUI.MAX_X+1), i / (VRCToysUI.MAX_X+1), 0, 0));
                 m.SetInt("_CheckPenetratorOrface", setupData.sensor_Positions[i].penetrator != Penetrator_Options.None?1:0);
                 VRCToysUI.SetSensorName(m, name);
-                if(setupData.sensor_Positions[i].penetrator != Penetrator_Options.None) m.EnableKeyword("GEOM_TYPE_BRANCH");
+                if(setupData.sensor_Positions[i].penetrator != Penetrator_Options.None) m.EnableKeyword(VRCToysUI.KEYWORD_PENETRATOR);
                 AssetDatabase.CreateAsset(m, folderpath + "/pixelWriter_" + setupData.avatarObject.name + "_" + i + ".mat");
 
                 MeshFilter meshFilter = oChild.AddComponent<MeshFilter>();

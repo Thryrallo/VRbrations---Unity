@@ -27,6 +27,8 @@ namespace Thry.VRBrations
         public const int MAX_X = 39;
         public const int MAX_Y = 0;
 
+        public const string KEYWORD_PENETRATOR = "GEOM_TYPE_BRANCH";
+
         public override void OnGUI(MaterialEditor materialEditor, MaterialProperty[] properties)
         {
             EditorGUILayout.LabelField("<size=16><color=#EF7AFF>❤ VRC Toys ❤</color></size>", Styles.masterLabel);
