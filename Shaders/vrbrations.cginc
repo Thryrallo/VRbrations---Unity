@@ -9,7 +9,7 @@ float4 TransformToScreenMain (float2 uv) {
 	return float4(0, 0, 0, 0);
 #else
 	float4 pos = float4(uv.xy * float2(2, 2) + float2(-1, -1), 0, 1);; //moving to pixel position
-	pos.y = (_ProjectionParams.x < 0) * pos.y; //flip y if projection is flipped
+	pos.y = ((_ProjectionParams.x < 0) * 2 - 1) * pos.y; //flip y if projection is flipped
 	return pos;
 #endif
 }
@@ -21,7 +21,7 @@ float4 TransformToScreenSensor(float2 uv) {
 	float2 sensorSize = float2(SENSOR_WIDTH, SENSOR_HEIGHT) * float2(PIXEL_WIDTH, PIXEL_HEIGHT) / 50;
 	float2  p = uv * sensorSize - 1.0; //Scaling sensor
 	float4 pos = float4(p.x + sensorSize.x * _pixelPosition.x, p.y + sensorSize.y * _pixelPosition.y, 0, 1); //moving to pixel position
-	pos.y = (_ProjectionParams.x < 0) * pos.y; //flip y if projection is flipped
+	pos.y = ((_ProjectionParams.x < 0) * 2 - 1) * pos.y; //flip y if projection is flipped
 	return pos;
 #endif
 }
